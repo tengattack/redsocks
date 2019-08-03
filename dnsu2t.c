@@ -34,6 +34,10 @@
 #include "dnsu2t.h"
 #include "utils.h"
 
+#ifndef MSG_FASTOPEN
+#define MSG_FASTOPEN   0x20000000 /* Send data in TCP SYN.  */
+#endif
+
 #define dnsu2t_log_error(prio, msg...) \
 	redsocks_log_write_plain(__FILE__, __LINE__, __func__, 0, &clientaddr, &self->config.bindaddr, prio, ## msg)
 #define dnsu2t_log_errno(prio, msg...) \
@@ -242,7 +246,7 @@ void dnsu2t_pkt_from_relay(int fd, short what, void *_arg)
 	if (what & EV_READ) {
 		char* dst = ((char*)&self->pkt) + self->pkt_size;
 		if (self->pkt_size)
-			log_error(LOG_DEBUG, "partial packet, off=%lu", self->pkt_size);
+			log_error(LOG_DEBUG, "partial packet, off=%d", self->pkt_size);
 		const size_t bufsz = sizeof(self->pkt) - self->pkt_size;
 		assert(bufsz > 0 && self->pkt_size >= 0);
 		ssize_t rcvd = recv(fd, dst, bufsz, 0);
