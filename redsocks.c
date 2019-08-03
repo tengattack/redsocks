@@ -84,6 +84,7 @@ static parser_entry redsocks_entries[] =
 	{ .key = "splice",     .type = pt_bool },
 	{ .key = "disclose_src", .type = pt_disclose_src },
 	{ .key = "on_proxy_fail", .type = pt_on_proxy_fail },
+	{ .key = "timeout", .type = pt_uint16 },
 	{ }
 };
 
@@ -137,6 +138,7 @@ static int redsocks_onenter(parser_section *section)
 	instance->config.use_splice = is_splice_good();
 	instance->config.disclose_src = DISCLOSE_NONE;
 	instance->config.on_proxy_fail = ONFAIL_CLOSE;
+	instance->config.timeout = 0;
 
 	for (parser_entry *entry = &section->entries[0]; entry->key; entry++)
 		entry->addr =
@@ -151,6 +153,7 @@ static int redsocks_onenter(parser_section *section)
 			(strcmp(entry->key, "splice") == 0)     ? (void*)&instance->config.use_splice :
 			(strcmp(entry->key, "disclose_src") == 0) ? (void*)&instance->config.disclose_src :
 			(strcmp(entry->key, "on_proxy_fail") == 0) ? (void*)&instance->config.on_proxy_fail :
+			(strcmp(entry->key, "timeout") == 0) ? (void*)&instance->config.timeout :
 			NULL;
 	section->data = instance;
 	return 0;
@@ -976,6 +979,12 @@ void redsocks_connect_relay(redsocks_client *client)
 		redsocks_log_errno(client, LOG_ERR, "red_connect_relay");
 		redsocks_drop_client(client);
 	}
+	else {
+		if (client->timeout > 0) {
+			redsocks_log_error(client, LOG_INFO, "settimeout");
+			bufferevent_settimeout(client->relay, client->timeout,client->timeout);
+		}
+	}
 }
 
 static struct timeval drop_idle_connections()
@@ -1225,6 +1234,7 @@ static void redsocks_accept_client(int fd, short what, void *_arg)
 
 	redsocks_touch_client(client);
 
+	client->timeout = self->config.timeout;
 	client->client = bufferevent_new(client_fd, NULL, NULL, redsocks_event_error, client);
 	if (!client->client) {
 		log_errno(LOG_ERR, "bufferevent_new");
