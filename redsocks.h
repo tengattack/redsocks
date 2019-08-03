@@ -36,6 +36,7 @@ typedef struct redsocks_config_t {
 	bool use_splice;
 	enum disclose_src_e disclose_src;
 	enum on_proxy_fail_e on_proxy_fail;
+	uint16_t timeout;
 } redsocks_config;
 
 typedef struct redsocks_instance_t {
@@ -60,6 +61,7 @@ typedef struct redsocks_client_t {
 	evshut_t            relay_evshut;
 	struct timeval      first_event;
 	struct timeval      last_event;
+	uint16_t timeout;
 } redsocks_client;
 
 typedef struct splice_pipe_t {
